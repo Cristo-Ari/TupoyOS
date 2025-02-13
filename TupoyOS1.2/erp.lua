@@ -1,5 +1,4 @@
 return function(message)
-
     local timerID = os.startTimer(1)
     while true do
         local message = coroutine.yield({

@@ -26,7 +26,16 @@ return function(message)
     
     local windowID = pAPI:createWindow({
         title = "taskbar",
-        pos = {1, display.size.y-1}
+        pos = {
+            x=0, 
+            y=display.size.y-1
+        },
+        size = {
+            x = display.size.x+2,
+            y = 3
+        },
+        borderVisibility = false,
+        alwaysOnTop = true,
     })
 
     

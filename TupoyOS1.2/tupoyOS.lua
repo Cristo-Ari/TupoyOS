@@ -10,31 +10,12 @@ local debugPrint = function(info)
     print(info)
     os.sleep(2)
 end
-
-local acolors = {
-    white = 'f',
-    orange = '0',
-    magenta = '2',
-    lightBlue = '3',
-    yellow = '4',
-    lime = '5',
-    pink = '6',
-    gray = '7',
-    lightGray = '8',
-    cyan = '9',
-    purple = 'a',
-    blue = 'b',
-    brown = 'c',
-    green = 'd',
-    red = 'e',
-    black = 'f'
-}
-
 windowM = {
     windows = {},
     windowOrder = {},
     isReadyToDrag = {},
     isReadyToResize = {},
+    focusedWindowKey = nil,
 
     add = function(self, x, y, width, height, title, processID)
         local window = {
@@ -42,11 +23,13 @@ windowM = {
             x = x,
             y = y,
             backround = "0",
+            borderVisibility = true,
             width = width,
             height = height,
             title = title or "Window",
             isFocused = false,
-            isMaximized = false
+            isMaximized = false,
+            alwaysOnTop = false
         }
         local key = randStr()
         self.windows[key] = window
@@ -56,54 +39,118 @@ windowM = {
         return key
     end,
 
+    windowToFront = function(self, windowKey)
+        -- Удаляем окно из списка, если оно уже там
+        local index = findIndex(self.windowOrder, windowKey)
+        if index then
+            table.remove(self.windowOrder, index)
+        end
+    
+        -- Находим последний индекс, где окно не всегда поверх (alwaysOnTop == false)
+        local insertPos = 0
+        for i, key in ipairs(self.windowOrder) do
+            if not self.windows[key].alwaysOnTop then
+                insertPos = i
+            end
+        end
+    
+        -- Вставляем windowKey сразу после найденного элемента
+        table.insert(self.windowOrder, insertPos + 1, windowKey)
+    end,
+
     process = function(self, eData)
         if eData[1] == "mouse_click" then
             local button, x, y = eData[2], eData[3], eData[4]
             local foundFocused = false
-            for i = #self.windowOrder, 1, -1 do
-                local key = self.windowOrder[i]
-                local window = self.windows[key]
-                if x >= window.x and x <= window.x + window.width - 1 and 
-                   y >= window.y and y <= window.y + window.height - 1 then
-                    window.isFocused = true
-                    foundFocused = true
-                    local inWindowX = x - window.x + 1
-                    local inWindowY = y - window.y + 1
-                    if inWindowY == 1 and inWindowX > 1 and inWindowX < window.width then
-                        self.isReadyToDrag = {true, key, inWindowX, inWindowY}
-                    else
-                        self.isReadyToDrag = {false}
-                    end
 
-                    --левый верхний угол
-                    if inWindowX == 1 and inWindowY ==1 then
-                        self.isReadyToResize = {true,key,"leftUp",x,y,window.width,window.height}
-                    --левый нижний угол
-                    elseif inWindowX ==1 and inWindowY == window.height then
-                        self.isReadyToResize = {true,key,"leftDown",x,y,window.width,window.height}
-                    --правый верхний угол
-                    elseif inWindowX == window.width and inWindowY == 1 then
-                        self.isReadyToResize = {true,key,"rightUp",x,y,window.width,window.height}
-                    --правый нижний угол
-                    elseif inWindowX == window.width and inWindowY == window.height then
-                        self.isReadyToResize = {true,key,"rightDown",x,y,window.width,window.height}
-                    
-                    else
-                        self.isReadyToResize[1] = false
-                    end
+            local function inBorder(window,x,y)
+                return x >= window.x and x <= window.x + window.width - 1 and 
+                y >= window.y and y <= window.y + window.height - 1
+            end
 
-                    table.remove(self.windowOrder, i)
-                    table.insert(self.windowOrder, key)
-                    break
+            local function inContent(window,x,y)
+                return x > window.x and x < window.x + window.width - 1 and 
+                y > window.y and y < window.y + window.height - 1
+            end
+
+            local function checkResizeTriggered(window,inWindowX,inWindowY,windowKey)
+                --левый верхний угол
+                if inWindowX == 1 and inWindowY ==1 then
+                    self.isReadyToResize = {true,windowKey,"leftUp",x,y,window.width,window.height}
+                --левый нижний угол
+                elseif inWindowX ==1 and inWindowY == window.height then
+                    self.isReadyToResize = {true,windowKey,"leftDown",x,y,window.width,window.height}
+                --правый верхний угол
+                elseif inWindowX == window.width and inWindowY == 1 then
+                    self.isReadyToResize = {true,windowKey,"rightUp",x,y,window.width,window.height}
+                --правый нижний угол
+                elseif inWindowX == window.width and inWindowY == window.height then
+                    self.isReadyToResize = {true,windowKey,"rightDown",x,y,window.width,window.height}
                 else
-                    window.isFocused = false
+                    self.isReadyToResize[1] = false
                 end
             end
-            if not foundFocused then
-                self.isReadyToDrag = {false}
-                self.isReadyToResize = {false}
-                for _, window in pairs(self.windows) do
-                    window.isFocused = false
+
+            local function checkMoveTriggered(window,inWindowX,inWindowY,windowKey)
+                if inWindowY == 1 and inWindowX > 1 and inWindowX < window.width then
+                    self.isReadyToDrag = {true, windowKey, inWindowX, inWindowY}
+                else
+                    self.isReadyToDrag = {false}
+                end
+            end
+
+
+            local focusedWindowKey = nil
+            local focusedWindowOrderIndex = nil
+
+            for i = #self.windowOrder, 1, -1 do
+                local windowKey = self.windowOrder[i]
+                local window = self.windows[windowKey]
+
+                if window.borderVisibility then
+                    if inBorder(window,x,y) then
+                        window.isFocused = true
+                        foundFocused = true
+
+                        focusedWindowKey = windowKey
+                        focusedWindowOrderIndex = i
+
+                        local inWindowX = x - window.x + 1
+                        local inWindowY = y - window.y + 1
+
+                        checkMoveTriggered(window,inWindowX,inWindowY,windowKey)
+                        checkResizeTriggered(window,inWindowX,inWindowY,windowKey)
+                        
+                        break
+                    end
+                end
+
+                if inContent(window,x,y) then
+                    window.isFocused = true
+                    foundFocused = true
+
+                    focusedWindowKey = windowKey
+                    focusedWindowOrderIndex = i
+                    break
+                end
+                
+            end
+            if self.focusedWindowKey ~= focusedWindowKey then
+                if foundFocused then
+                    if self.focusedWindowKey ~= nil then
+                        self.windows[self.focusedWindowKey].isFocused = false
+                    end 
+                    self.focusedWindowKey = focusedWindowKey
+                    self:windowToFront(focusedWindowKey)
+                else
+                    self.isReadyToDrag = {false}
+                    self.isReadyToResize = {false}
+
+                    if self.focusedWindowKey ~= nil then
+                        self.windows[self.focusedWindowKey].isFocused = false
+                    end 
+                    self.focusedWindowKey = nil
+                    
                 end
             end
 
@@ -351,7 +398,9 @@ windowM = {
         for _, windowKey in ipairs(self.windowOrder) do
             local window = self.windows[windowKey]
             self:drawBackround(window)
-            self:drawBorder(window)
+            if window.borderVisibility == true then
+                self:drawBorder(window)
+            end
             self:drawContent(window,windowKey)
         end
         screen:print()
@@ -374,11 +423,12 @@ coroutinesManager = {
                 eData = eData
             }
             local sendingMessage = eventMessage
+
             repeat
                 local status, message = coroutine.resume(cor,sendingMessage)
-
-                -- print(textutils.serialise(message))
-                -- os.sleep(0.5)
+                if not status then
+                    error("Coroutine error: " .. tostring(message))
+                end
 
                 if message.type == "request" then
                     if message.info == "create window" then
@@ -397,30 +447,39 @@ coroutinesManager = {
                         }
                     end
                     -- print(message.info)
-                    -- os.sleep(1)
-                    if message.info == "change window title" then
+                    -- os.sleep(1)set window pos
+                    if message.info == "set window title" then
                         windowM.windows[message.windowID].title = message.title
-                        -- local status, message = coroutine.resume(cor,{
-                        --     type = "window",
-                        --     info = "change title window response"
-                        -- })
-                        
                     end
+                    if message.info == "set window pos" then
+                        windowM.windows[message.windowID].x = message.pos.x
+                        windowM.windows[message.windowID].y = message.pos.y
+                    end
+                    if message.info == "set window size" then
+                        windowM.windows[message.windowID].width = message.size.x
+                        windowM.windows[message.windowID].height = message.size.y
+                    end
+                    if message.info == "set window border visibility" then
+                        windowM.windows[message.windowID].borderVisibility = message.borderVisibility
+                        --os.sleep(11)
+                    end
+                    if message.info == "set window always on top" then
+                        windowM.windows[message.windowID].alwaysOnTop = message.alwaysOnTop
+                    end
+                    
 
                     if message.info == "get display info" then
                         local x,y = term.getSize()
-                        local status, message = coroutine.resume(cor,{
+                        local display = {
+                            size = {x=x,
+                            y=y}
+                        }
+                        sendingMessage = {
                             type = "response",
-                            info = "change title window response"
-                        })
-                        
+                            content = display
+                        }
                     end
 
-                end
-
-
-                if not status then
-                    error("Coroutine error: " .. tostring(message))
                 end
             until message.type == "done"
         end
@@ -603,9 +662,9 @@ local tupoyOS = {
 -- windowM:add(math.random(1, 20), math.random(1, 10), 20, 4, "Window 3")
 
 --coroutinesManager:add(dofile("erp.lua"))
---coroutinesManager:add(dofile("exampleProgram.lua"))
---coroutinesManager:add(dofile("exampleProgram.lua"))
---coroutinesManager:add(dofile("exampleProgram.lua"))
+coroutinesManager:add(dofile("exampleProgram.lua"))
+coroutinesManager:add(dofile("exampleProgram.lua"))
+coroutinesManager:add(dofile("exampleProgram.lua"))
 coroutinesManager:add(dofile("taskbar.lua"))
 
 

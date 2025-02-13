@@ -1,3 +1,30 @@
+acolors = {
+    white = 'f',
+    orange = '0',
+    magenta = '2',
+    lightBlue = '3',
+    yellow = '4',
+    lime = '5',
+    pink = '6',
+    gray = '7',
+    lightGray = '8',
+    cyan = '9',
+    purple = 'a',
+    blue = 'b',
+    brown = 'c',
+    green = 'd',
+    red = 'e',
+    black = 'f'
+}
+
+function findIndex(tbl, value)
+    for i, v in ipairs(tbl) do
+        if v == value then
+            return i
+        end
+    end
+    return nil  -- Если значение не найдено
+end
 
 function randStr()
     local charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"

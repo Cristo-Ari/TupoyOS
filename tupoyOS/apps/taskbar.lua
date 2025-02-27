@@ -16,6 +16,7 @@ return function(pAPI)
     window.layoutManager = nil
 
     local windowsRAW = pAPI:getAllWindows()
+    print()
 
 
     local counter = 1
@@ -23,17 +24,17 @@ return function(pAPI)
     local distance_between = 1
     local len = 5
     
-    for key, windowRAW in pairs (windowsRAW) do
-        local allWinodws = pAPI:getAllWindows()
-        local ttext = pAPI:createTText({
-            pos = {x=(counter*(len+distance_between)),y=1},
-            size = {x=len,y=1},
-            text = "Hello "..randStr(),
-            bkColor = "4"
-        })
-        window:add(ttext)
-        counter = counter+1
-    end
+    -- for key, windowRAW in pairs (windowsRAW) do
+    --     local allWinodws = pAPI:getAllWindows()
+    --     local ttext = pAPI:createTText({
+    --         pos = {x=(counter*(len+distance_between)),y=1},
+    --         size = {x=len,y=1},
+    --         text = "Hello "..randStr(),
+    --         bkColor = "4"
+    --     })
+    --     window:add(ttext)
+    --     counter = counter+1
+    -- end
     
 
     

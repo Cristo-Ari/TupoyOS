@@ -72,22 +72,6 @@ function splitString(str)
     return letters
 end
 
-function copyTable(obj)  
-    local lookup_table = {}  
-    local function _copy(object)  
-    if type(object) == "function" then
-        return loadstring(string.dump(object))  
-    elseif type(object) ~= "table" then  
-    return object  
-    elseif lookup_table[object] then  
-    return lookup_table[object]  
-    end  
-    local new_table = {}  
-    lookup_table[object] = new_table  
-    for index, value in pairs(object) do  
-    new_table[_copy(index)] = _copy(value)  
-    end  
-    return setmetatable(new_table, _copy(getmetatable(object)))  
-    end 
-    return _copy(obj)  
+function copy(obj)  
+    return textutils.unserialise(textutils.serialise(obj))
 end 

@@ -62,7 +62,6 @@ return {
             alwaysOnTop = alwaysOnTop
         })
     end,
-
     setWindowAlwaysOnBack = function (self,windowID,alwaysOnBack)
         local message = coroutine.yield({
             type = "request",
@@ -70,7 +69,25 @@ return {
             windowID = windowID,
             alwaysOnBack = alwaysOnBack
         })
-        
+    end,
+
+    coroutineSleep = function(self,seconds)
+        local message = coroutine.yield({
+            type = "request",
+            info = "coroutine sleep",
+            params = {
+                seconds = seconds
+            }
+        })
+    end,
+    compSleep = function(self,seconds)
+        local message = coroutine.yield({
+            type = "request",
+            info = "computer sleep",
+            params = {
+                seconds = seconds
+            }
+        })
     end,
     
     createWindow = function(self,args)

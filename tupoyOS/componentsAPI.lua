@@ -3,15 +3,23 @@ local linesAPI = dofile("tupoyOS/linesAPI.lua")
 local componentsAPI = {
     createComponent = function (self)
         local comp = {
-            isGhost = false, -- если кликнули на компонент, тогда кликнуть даже на те, что позади компонента
+            isGhostMouseClicked = false, -- если кликнули на компонент, тогда кликнуть даже на те, что позади компонента
+            isGhostMouseDragged = false,
             ignoreSelfListenersWhenClickedInsideComponent = false,
-
-            layoutManager = nil,
-
             components = {},
             add = function (self, comp)
                 table.insert(self.components,comp)
             end,
+            layoutManager = nil,
+            updateCompsPos = function(self)
+                if self.layoutManager~= nil then
+                    for key, value in pairs(self.components)do
+                        
+                    end
+                end
+            end,
+
+            
             
             pos = {
                 value = {x=1,y=1},
@@ -95,13 +103,24 @@ local componentsAPI = {
                         }
                         ]]--
                         comp:triggerMouseListeners({
-                            clickType = event.clickType,
+                            type = event.type,
                             pos = {
                                 x = x-compPos.x+1,
                                 y = y-compPos.y+1,
-                            }
+                            },
+                            buttonName = event.buttonName
                         })
-                        if not comp.isGhost then
+                        if event.type=="mouse click" then
+                            if not comp.isGhostMouseClicked then
+                                clickedInsideComponent = true
+                                break
+                            end
+                        elseif event.type=="mouse drag" then
+                            if not comp.isGhostMouseDragged then
+                                clickedInsideComponent = true
+                                break
+                            end
+                        else
                             clickedInsideComponent = true
                             break
                         end

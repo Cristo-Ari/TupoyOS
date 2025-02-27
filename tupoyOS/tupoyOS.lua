@@ -5,6 +5,7 @@ local coroutinesManager = dofile("tupoyOS/coroutineM.lua")
 
 windowM.coroutinesManager = coroutinesManager
 coroutinesManager.windowM = windowM
+
 local timersManager = dofile("tupoyOS/timersManager.lua")
 
 local tupoyOS = {
@@ -66,5 +67,7 @@ local tupoyOS = {
 -- coroutinesManager:add(dofile("tupoyOS/apps/explorer.lua"))
 -- coroutinesManager:add(dofile("tupoyOS/apps/desktop.lua"))
 coroutinesManager:add(dofile("tupoyOS/apps/paint.lua"))
+-- coroutinesManager:add(dofile("tupoyOS/apps/paint.lua"))
+-- coroutinesManager:add(dofile("tupoyOS/apps/paint.lua"))
 
 tupoyOS:mainLoop()

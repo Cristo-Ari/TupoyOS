@@ -4,6 +4,8 @@ local compAPI = dofile("tupoyOS/componentsAPI.lua")
 
 return {
     compAPI = compAPI,
+    logWindow = nil,
+    logs = {},
 
     layouts = {
         fillLayoutManager = function(father, childs)
@@ -85,9 +87,10 @@ return {
 
             local textPos
             if TText.textPos == "center" then
+                local TTextSize = TText.size:get()
                 textPos = {
-                    x=math.max(math.ceil(TText.size.x/2-(#coloredLine.text / 2)) , 1+TText.leftSpace),
-                    y=math.ceil(TText.size.y/2)
+                    x=math.max(math.ceil(TTextSize.x/2-(#coloredLine.text / 2)) , 1+TText.leftSpace),
+                    y=math.ceil(TTextSize.y/2)
                 }
             elseif TText.textPos == "left" then
                 
@@ -107,6 +110,17 @@ return {
     createTButton = function (self,args)
         local baseComponent = self:createComponent(args)
         return baseComponent
+    end,
+
+    createLogWindow = function(self)
+        self.logWindow = self:createWindow()
+    end,
+
+    log = function(self,text)
+        if self.logWindow==nil then
+            self:createLogWindow()
+        end
+        table.insert(self.logs,text)
     end,
 
     
@@ -133,6 +147,17 @@ return {
         drawWindowsHandler = function(self,message)
             if message.type == "window" then
                 if message.info == "paint request" then
+                    
+                    print("message.windowID is ".. message.windowID)
+                    print("windows is ")
+                    print("")
+                    for windowKey, window in pairs(self.windows) do
+                        print(""..windowKey)
+                    end
+                    print("")
+                    self:compSleep(0.2)
+
+                    local windowFound = false
                     for windowKey, window in pairs(self.windows) do
                         if message.windowID == windowKey then
                             local returnMessage = {
@@ -142,8 +167,21 @@ return {
                                 data = window:getLines()
                             }
                             coroutine.yield(returnMessage)
+                            windowFound = true
                             break
                         end
+                    end
+
+                    if not windowFound then
+                        print("message.windowID is ".. message.windowID)
+                        print("windows is ")
+                        print("")
+                        for windowKey, window in pairs(self.windows) do
+                            print(""..windowKey)
+                        end
+                        print("")
+                        print("window not found")
+                        error("window not found")
                     end
                 end
             end
@@ -210,5 +248,11 @@ return {
         end
 
         return message.content
-    end
+    end,
+    coroutineSleep = function(self,seconds)
+        pAPI:coroutineSleep(seconds)
+    end,
+    compSleep = function(self,seconds)
+        pAPI:compSleep(seconds)
+    end,
 }
